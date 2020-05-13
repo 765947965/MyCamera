@@ -133,7 +133,12 @@ public class CameraManager implements CameraPreview.CameraPreviewListener {
         camera.setPreviewCallbackWithBuffer(new Camera.PreviewCallback() {
             @Override
             public void onPreviewFrame(byte[] data, Camera camera) {
-
+                if (listener != null) {
+                    listener.onPictureTaken(
+                            new CameraPreviewData(data, previewSize.width, previewSize.height,
+                                    previewDegreen, front));
+                }
+                camera.addCallbackBuffer(data);
             }
         });
     }
@@ -145,6 +150,6 @@ public class CameraManager implements CameraPreview.CameraPreviewListener {
     }
 
     public interface CameraListener {
-        void onPictureTaken(Object cameraPreviewData);
+        void onPictureTaken(CameraPreviewData cameraPreviewData);
     }
 }
