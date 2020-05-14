@@ -83,12 +83,15 @@ public class BoxView extends View {
 
     public void showFaceBox(Rect rect) {
         if (rect != null) {
+            // 计算比例(预览宽度/摄像头像素宽度)
+            float proportion = ((float) getWidth()) / 480f;
+            RectF rectP = new RectF(rect.left * proportion, rect.top * proportion, rect.right * proportion, rect.bottom * proportion);
             // 坐标轴顺时针旋转90度
-            int height = getWidth();
-            int newLeft = height - rect.bottom;
-            int newRight = height - rect.top;
-            int newTop = rect.left;
-            int newBottom = rect.right;
+            float height = getWidth();
+            float newLeft = height - rectP.bottom;
+            float newRight = height - rectP.top;
+            float newTop = rectP.left;
+            float newBottom = rectP.right;
             this.rectF = new RectF(newLeft, newTop, newRight, newBottom);
         }
     }
