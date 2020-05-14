@@ -6,6 +6,9 @@ import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
 import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
+import android.graphics.Rect;
 import android.os.Bundle;
 import android.util.Base64;
 import android.util.Log;
@@ -22,10 +25,20 @@ import com.arcsoft.face.LivenessInfo;
 import com.arcsoft.face.enums.DetectFaceOrientPriority;
 import com.arcsoft.face.enums.DetectMode;
 import com.arcsoft.face.enums.RuntimeABI;
+import com.arcsoft.face.model.ArcSoftImageInfo;
+import com.arcsoft.imageutil.ArcSoftImageFormat;
+import com.arcsoft.imageutil.ArcSoftImageUtil;
+import com.arcsoft.imageutil.ArcSoftImageUtilError;
+import com.google.gson.Gson;
+import com.q_zheng.QZhengIFManager;
+import com.tencent.mmkv.MMKV;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import io.reactivex.Observable;
 import io.reactivex.ObservableOnSubscribe;
@@ -40,13 +53,17 @@ public class MainActivity extends AppCompatActivity {
     private CameraManager cameraManagerIr;
     private FaceEngine ftEngine;
     private BoxView rgb, ir;
+    private TimeImage imageView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        MMKV.initialize(this);
+        new QZhengIFManager(this).setMonitorApp(getPackageName(), false, 15);
         setContentView(R.layout.activity_main);
         rgb = findViewById(R.id.rgbBox);
         ir = findViewById(R.id.irBox);
+        imageView = findViewById(R.id.imageView);
         if (!(ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)
                 || !(ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED)
                 || !(ActivityCompat.checkSelfPermission(MainActivity.this, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)) {
@@ -94,9 +111,10 @@ public class MainActivity extends AppCompatActivity {
                     // 人脸框
                     int code = ftEngine.detectFaces(rgbData.nv21Data, rgbData.width, rgbData.height, FaceEngine.CP_PAF_NV21, faceInfoList);
                     if (code != ErrorInfo.MOK || faceInfoList.size() == 0) {
-                        Log.i("ccccccccccc", "无人脸");
+                        //Log.i("ccccccccccc", "无人脸");
                         continue;
                     }
+                    setMaxFace(faceInfoList);
                     rgb.showFaceBox(faceInfoList.get(0).getRect());
                     // 活体
                     int flCode = ftEngine.processIr(irData.nv21Data, irData.width, irData.height, FaceEngine.CP_PAF_NV21, Arrays.asList(new FaceInfo(faceInfoList.get(0).clone())), FaceEngine.ASF_IR_LIVENESS);
@@ -121,17 +139,54 @@ public class MainActivity extends AppCompatActivity {
                     // 提取特征值
                     FaceFeature faceFeature = new FaceFeature();
                     ftEngine.extractFaceFeature(rgbData.nv21Data, rgbData.width, rgbData.height, FaceEngine.CP_PAF_NV21, new FaceInfo(faceInfoList.get(0)), faceFeature);
-                    Log.i("ccccccccccc", "特征值:" + new String(Base64.encode(faceFeature.getFeatureData(), Base64.NO_WRAP)));
-                    FaceFeature faceFeatureOld = new FaceFeature();
-                    faceFeatureOld.setFeatureData(Base64.decode("AID6RAAAoEEWQzI9wJEtPgmUub0AdQG8nI8UvaSxJj2GKyO+eVeQPADopztYKCy9FoQbPbfvFTxlFMo9hagTune+kD1beM09b/oNPdD2b7w/SY+98/9DPTbq0r3E3pk87KUOPtqebDwUS5C95IRKvRXuDj2yc6a9kzFePa8jA76qVYe92aJQPVTtpb2MFqO9Nz2fvZE2wbyYtU08E2B9PCXF3ruYnFG9bffnvXaH5byS7O25kyu+vAWFAj6Azm09diDgPWDwDz12iI499Up0PXEqwbxxKIe8IFg1u87ZIb6eOpC9N4xRvIdXcjyg12w7WqM5PRAt7T0KdBa8rtfivOoJmT0MDsQ8sQsxPvfTNb7tyes8uxXBPSP7OT1kQ3g9fUbfOkMXkr0AMCS9oCfePZ/3uTx9g0k8f5wBPFLHgL1TZK29nIWKvDaEWr3s18u8fGgSvL2vmL0HWRQ9QucoPhhylb3xCaS9pTuaPYnurb18ak08EDJRPPk/hD2f7fe9OTcQvRHKqjxLdjY9nC7GPCTOhLw1Mrs9wpvMvfktCz3gG98635Y0vdFxzrzOQIy8b2XAvH68+7w5GMw8ddWpvVlFJz0a8iy9oBFyPCfP3LzX5I+7JqXBvNqQ0bwDyjg97GPpPSm4rb2dphm9zLmhvOxt2LqLv/W8qR40vU7Wv7wCVYE9CaeSvRXSnLxl56M9SY6IvRatqTyfac68SC0VvaKhEz286v+4D393PE44FD0fooO891LmO35ZSD2QwCE9fR1AuxrNxj2/FYO7dxzyvEa7L7yf0fs9vcuLPX82pb17CpU8sQkFPf5YlLx85BO+X3u4PdycSb3Z/eO8HoeNPPyqCb1M1uq8jYuJPNHmojzsSlY9Yl0bvQVIrTxiXy++8mS2vZgYQL3fxqS9ZIaBO+0gGD2Ofrk9XYCyPVgrTDzJCXO9tq5sO2pDwzpFSWk9OTX1PObDQz0uPp09ldlTPa+I8TxDcoy7QHp1vVpzXj1NdkM9Q//4vPpPRzyRCuU9DnQ2PdjE17wwfFu80l4NvjyrGLwlqWq9n+u4vWiecr2Bsau8FxI/vFFeBz7I9XW99CZmPe9bUD0kCuS8NjPPvS6Pv704K+G8xWhgPXaNob2cEsu8/AGWPW8AirygL/e9qIIWvKofmjxfw0+9oOzKvZNyHbxSzts8EKzEPBZVJbwXy+G9hX38vKeNcz29mSg9HCMJvRg+jzwcOda8NLSpPHDaZr0VA3a91hSdPfA0u7zS5/085dZnPXZlVzud6w49VUaKvbO4Nbwc7as8ekTaPJclIDzvH1A8NW2wvFXDtjvWS3o75tENPvfzcb3OR+09w3vCvXGDh719oMk856/IPZ0rBr1WQNa9".getBytes(), Base64.NO_WRAP));
-                    FaceSimilar faceSimilar = new FaceSimilar();
-                    flCode = ftEngine.compareFaceFeature(faceFeature, faceFeatureOld, faceSimilar);
-                    if (flCode != ErrorInfo.MOK) {
-                        Log.i("ccccccccccc", "特征值对比失败!");
-                        continue;
+                    //Log.i("ccccccccccc", "特征值:" + new String(Base64.encode(faceFeature.getFeatureData(), Base64.NO_WRAP)));
+                    String name = null;
+                    float score = 0;
+                    for (Map.Entry<String, FaceFeature> item : FaceFeatureMap.entrySet()) {
+                        FaceSimilar faceSimilar = new FaceSimilar();
+                        flCode = ftEngine.compareFaceFeature(faceFeature, item.getValue(), faceSimilar);
+                        if (flCode == ErrorInfo.MOK) {
+                            if (faceSimilar.getScore() > score) {
+                                score = faceSimilar.getScore();
+                                name = item.getKey();
+                            }
+                        }
                     }
-                    Log.i("ccccccccccc", "特征值对比分数：" + faceSimilar.getScore());
+                    if (score > 0.8) {
+                        Log.i("ccccccccccc", "识别成功：CODE=" + score + "; NAME=" + name);
+                        final String path = name;
+                        imageView.post(new Runnable() {
+                            @Override
+                            public void run() {
+                                imageView.setImageBitmap(BitmapFactory.decodeFile(new File("/sdcard/Android/data/com.east.face.device.east/files/Documents/face", path).getAbsolutePath()));
+                                imageView.timing();
+                            }
+                        });
+                    } else {
+                        Log.i("ccccccccccc", "陌生人:" + score);
+                    }
                 }
+            }
+
+            private void setMaxFace(List<FaceInfo> faceInfoList) {
+                FaceInfo add = null;
+                for (FaceInfo item : faceInfoList) {
+                    if (add == null) {
+                        add = item;
+                    } else {
+                        Rect rectOld = add.getRect();
+                        Rect rectNew = item.getRect();
+                        int oldWith = rectOld.right - rectOld.left;
+                        int oldHeight = rectOld.bottom - rectOld.top;
+                        int newWith = rectNew.right - rectNew.left;
+                        int newHeight = rectNew.bottom - rectNew.top;
+                        if (oldWith * oldHeight < newHeight * newWith) {
+                            add = item;
+                        }
+                    }
+                }
+                faceInfoList.clear();
+                faceInfoList.add(add);
             }
         }).start();
     }
@@ -229,13 +284,75 @@ public class MainActivity extends AppCompatActivity {
                 });
     }
 
+    private Map<String, FaceFeature> FaceFeatureMap = new HashMap<>();
+
     // 初始化SDK
     private void initSdk() {
         ftEngine = new FaceEngine();
         ftEngine.init(this, DetectMode.ASF_DETECT_MODE_VIDEO, DetectFaceOrientPriority.ASF_OP_90_ONLY,
-                16, 1, FaceEngine.ASF_FACE_DETECT
+                16, 10, FaceEngine.ASF_FACE_DETECT
                         | FaceEngine.ASF_FACE_RECOGNITION | FaceEngine.ASF_IR_LIVENESS);
-        initThread();
+        final FaceEngine rill = new FaceEngine();
+        rill.init(this, DetectMode.ASF_DETECT_MODE_IMAGE, DetectFaceOrientPriority.ASF_OP_ALL_OUT,
+                32, 1, FaceEngine.ASF_FACE_DETECT | FaceEngine.ASF_FACE_RECOGNITION);
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                String value = MMKV.defaultMMKV().decodeString("value1", null);
+                if (value == null) {
+                    File fl = new File("/sdcard/Android/data/com.east.face.device.east/files/Documents/face");
+                    for (File item : fl.listFiles()) {
+                        Bitmap fileBitMap = BitmapFactory.decodeFile(item.getAbsolutePath());
+                        Bitmap bitmap = ArcSoftImageUtil.getAlignedBitmap(fileBitMap, true);
+                        int width = bitmap.getWidth();
+                        int height = bitmap.getHeight();
+                        byte[] bgr24 = ArcSoftImageUtil.createImageData(bitmap.getWidth(), bitmap.getHeight(), ArcSoftImageFormat.BGR24);
+                        int transformCode = ArcSoftImageUtil.bitmapToImageData(bitmap, bgr24, ArcSoftImageFormat.BGR24);
+                        if (transformCode == ArcSoftImageUtilError.CODE_SUCCESS) {
+                            ArcSoftImageInfo arcSoftImageInfo = new ArcSoftImageInfo(width, height, FaceEngine.CP_PAF_BGR24, new byte[][]{bgr24}, new int[]{width * 3});
+                            // 传入ArcSoftImageInfo对象进行人脸检测
+                            List<FaceInfo> faceInfoList = new ArrayList<>();
+                            int code = rill.detectFaces(arcSoftImageInfo, faceInfoList);
+                            if (code == ErrorInfo.MOK && faceInfoList.size() > 0) {
+                                FaceFeature faceFeature = new FaceFeature();
+                                code = rill.extractFaceFeature(arcSoftImageInfo, new FaceInfo(faceInfoList.get(0)), faceFeature);
+                                if (code == ErrorInfo.MOK) {
+                                    FaceFeatureMap.put(item.getName(), faceFeature);
+                                    Log.i("ccccccccccc", "提取特征值成功了:" + item.getName());
+                                } else {
+                                    Log.i("ccccccccccc", "提取特征值失败:" + item.getName());
+                                }
+                            } else {
+                                Log.i("ccccccccccc", "寻找人脸失败:" + item.getName());
+                            }
+                        } else {
+                            Log.i("ccccccccccc", "构建图片失败:" + item.getName());
+                        }
+                    }
+                    BaseBean baseBean = new BaseBean();
+                    List<BaseBean.Data> list = new ArrayList<>();
+                    baseBean.setList(list);
+                    for (Map.Entry<String, FaceFeature> item : FaceFeatureMap.entrySet()) {
+                        BaseBean.Data data = new BaseBean.Data();
+                        data.setName(item.getKey());
+                        data.setFeature(new String(Base64.encode(item.getValue().getFeatureData(), Base64.NO_WRAP)));
+                        list.add(data);
+                    }
+                    MMKV.defaultMMKV().encode("value1", new Gson().toJson(baseBean));
+                } else {
+                    BaseBean baseBean = new Gson().fromJson(value, BaseBean.class);
+                    for (BaseBean.Data item : baseBean.getList()) {
+                        FaceFeatureMap.put(item.getName(), new FaceFeature(Base64.decode(item.getFeature().getBytes(), Base64.NO_WRAP)));
+                    }
+                }
+                rgb.post(new Runnable() {
+                    @Override
+                    public void run() {
+                        initThread();
+                    }
+                });
+            }
+        }).start();
     }
 
     protected void showToast(String s) {
