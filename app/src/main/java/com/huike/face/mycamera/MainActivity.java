@@ -258,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
         Observable.create((ObservableOnSubscribe<Integer>) emitter -> {
             RuntimeABI runtimeABI = FaceEngine.getRuntimeABI();
             Log.i(TAG, "subscribe: getRuntimeABI() " + runtimeABI);
-            int activeCode = FaceEngine.activeOnline(MainActivity.this, Constants.ACTIVE_KEY, Constants.APP_ID, Constants.SDK_KEY);
+            int activeCode = FaceEngine.activeOnline(MainActivity.this, Constants.APP_ID, Constants.SDK_KEY);
             emitter.onNext(activeCode);
         })
                 .subscribeOn(Schedulers.io())
