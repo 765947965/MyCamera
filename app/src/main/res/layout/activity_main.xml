@@ -8,29 +8,29 @@
 
     <com.huike.face.mycamera.CameraPreview
         android:id="@+id/cameraPreviewRgb"
-        android:layout_width="320dp"
-        android:layout_height="340dp"
+        android:layout_width="240dp"
+        android:layout_height="320dp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <com.huike.face.mycamera.BoxView
         android:id="@+id/rgbBox"
-        android:layout_width="320dp"
-        android:layout_height="340dp"
+        android:layout_width="240dp"
+        android:layout_height="320dp"
         app:layout_constraintLeft_toLeftOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
     <com.huike.face.mycamera.CameraPreview
         android:id="@+id/cameraPreviewIr"
-        android:layout_width="320dp"
-        android:layout_height="340dp"
+        android:layout_width="240dp"
+        android:layout_height="320dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="parent" />
 
     <com.huike.face.mycamera.BoxView
         android:id="@+id/irBox"
-        android:layout_width="320dp"
-        android:layout_height="340dp"
+        android:layout_width="240dp"
+        android:layout_height="320dp"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintRight_toRightOf="parent" />
 
