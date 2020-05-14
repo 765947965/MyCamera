@@ -9,6 +9,7 @@ import android.graphics.Paint;
 import android.graphics.PathEffect;
 import android.graphics.Rect;
 import android.graphics.RectF;
+import android.hardware.Camera;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -42,6 +43,7 @@ public class BoxView extends View {
     private int greenColor;
     private int redColor;
     private RectF rectF;
+    private DrawHelper drawHelper;
 
 
     public BoxView(Context context) {
@@ -88,9 +90,11 @@ public class BoxView extends View {
 
     public void showFaceBox(Rect rect) {
         if (rect != null) {
-            RectF rectF = new RectF(rect.left, rect.top, rect.right, rect.bottom);
-            //mapFromOriginalRect(rectF);
-            this.rectF = rectF;
+            if (drawHelper == null) {
+                drawHelper = new DrawHelper(getWidth(), getHeight(), getWidth(), getHeight(), 90, Camera.CameraInfo.CAMERA_FACING_BACK, false, false, false);
+            }
+            Rect newRectF = drawHelper.adjustRect(rect);
+            this.rectF = new RectF(newRectF.left, newRectF.top, newRectF.right, newRectF.bottom);
         }
     }
 
@@ -156,44 +160,5 @@ public class BoxView extends View {
         canvas.drawArc(rectFinner2, bearAngle - 60, 20, false, middleCirclePaint);
         canvas.drawArc(rectFinner2, bearAngle - 30, 20, false, middleCirclePaint);
         canvas.drawArc(rectFinner2, bearAngle + 90, 90, false, middleCirclePaint);
-    }
-
-    public void mapFromOriginalRect(RectF rectF) {
-        if (selfWidth == 0) {
-            // 获取屏幕的宽
-            selfWidth = getWidth();
-        }
-        if (selfHeight == 0) {
-            // 获取屏幕的高
-            selfHeight = getHeight();
-        }
-        // 新建矩阵对象
-        Matrix matrix = new Matrix();
-        // 当屏幕宽度/图像宽度>屏幕高度/图像高度时
-        if (selfWidth * imageFrameHeight > selfHeight * imageFrameWidth) {
-            // 将高度按照宽度比进行缩放
-            int targetHeight = imageFrameHeight * selfWidth / imageFrameWidth;
-            // 计算平移距离
-            int delta = (targetHeight - selfHeight) / 2;
-            // 计算宽度比
-            float ratio = 1.0f * selfWidth / imageFrameWidth;
-            // 设置矩阵变换缩放比
-            matrix.postScale(ratio, ratio);
-            // 设置变换矩阵的平移距离
-            matrix.postTranslate(0, -delta);
-        } else {
-            // 将宽度按照高度比进行缩放
-            int targetWith = imageFrameWidth * selfHeight / imageFrameHeight;
-            // 计算平移距离
-            int delta = (targetWith - selfWidth) / 2;
-            // 计算宽度比
-            float ratio = 1.0f * selfHeight / imageFrameHeight;
-            // 设置矩阵变换缩放比
-            matrix.postScale(ratio, ratio);
-            // 设置变换矩阵的平移距离
-            matrix.postTranslate(-delta, 0);
-        }
-        // 对人脸框数据进行矩阵变换
-        matrix.mapRect(rectF);
     }
 }
