@@ -114,7 +114,7 @@ public class MainActivity extends AppCompatActivity {
                         //Log.i("ccccccccccc", "无人脸");
                         continue;
                     }
-                    setMaxFace(faceInfoList);
+                    keepMaxFace(faceInfoList);
                     rgb.showFaceBox(faceInfoList.get(0).getRect());
                     // 活体
                     int flCode = ftEngine.processIr(irData.nv21Data, irData.width, irData.height, FaceEngine.CP_PAF_NV21, Arrays.asList(new FaceInfo(faceInfoList.get(0).clone())), FaceEngine.ASF_IR_LIVENESS);
@@ -166,6 +166,20 @@ public class MainActivity extends AppCompatActivity {
                         Log.i("ccccccccccc", "陌生人:" + score);
                     }
                 }
+            }
+
+            private void keepMaxFace(List<FaceInfo> ftFaceList) {
+                if (ftFaceList == null || ftFaceList.size() <= 1) {
+                    return;
+                }
+                FaceInfo maxFaceInfo = ftFaceList.get(0);
+                for (FaceInfo faceInfo : ftFaceList) {
+                    if (faceInfo.getRect().width() > maxFaceInfo.getRect().width()) {
+                        maxFaceInfo = faceInfo;
+                    }
+                }
+                ftFaceList.clear();
+                ftFaceList.add(maxFaceInfo);
             }
 
             private void setMaxFace(List<FaceInfo> faceInfoList) {
@@ -244,7 +258,7 @@ public class MainActivity extends AppCompatActivity {
         Observable.create((ObservableOnSubscribe<Integer>) emitter -> {
             RuntimeABI runtimeABI = FaceEngine.getRuntimeABI();
             Log.i(TAG, "subscribe: getRuntimeABI() " + runtimeABI);
-            int activeCode = FaceEngine.activeOnline(MainActivity.this, Constants.APP_ID, Constants.SDK_KEY);
+            int activeCode = FaceEngine.activeOnline(MainActivity.this, Constants.ACTIVE_KEY, Constants.APP_ID, Constants.SDK_KEY);
             emitter.onNext(activeCode);
         })
                 .subscribeOn(Schedulers.io())

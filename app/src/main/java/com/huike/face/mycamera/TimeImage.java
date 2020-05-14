@@ -39,7 +39,7 @@ public class TimeImage extends AppCompatImageView {
 
     public void timing() {
         timeHandler.removeMessages(1);
-        timeHandler.sendEmptyMessageDelayed(1, 3000);
+        timeHandler.sendEmptyMessageDelayed(1, 1500);
     }
 
     @Override
