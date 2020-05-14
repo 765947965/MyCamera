@@ -4,12 +4,10 @@ import android.content.Context;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.DashPathEffect;
-import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.PathEffect;
 import android.graphics.Rect;
 import android.graphics.RectF;
-import android.hardware.Camera;
 import android.util.AttributeSet;
 import android.view.View;
 
@@ -33,17 +31,12 @@ public class BoxView extends View {
     private int bearAngle = 0;
     private Paint middleCirclePaint;
     private int dp1;
-    private int imageFrameHeight = 640;
-    private int imageFrameWidth = 480;
-    private int selfWidth;
-    private int selfHeight;
     private int blueColor;
     private int whiteOpen;
     private int defaultColor;
     private int greenColor;
     private int redColor;
     private RectF rectF;
-    private DrawHelper drawHelper;
 
 
     public BoxView(Context context) {
@@ -67,7 +60,7 @@ public class BoxView extends View {
         redColor = Color.RED;
         blueColor = defaultColor;
         whiteOpen = Color.parseColor("#35FFFFFF");
-        dp1 = 2;
+        dp1 = 1;
 
         middleCirclePaint = new Paint();
         middleCirclePaint.setAntiAlias(true);//用于防止边缘的锯齿
@@ -90,11 +83,13 @@ public class BoxView extends View {
 
     public void showFaceBox(Rect rect) {
         if (rect != null) {
-            if (drawHelper == null) {
-                drawHelper = new DrawHelper(getWidth(), getHeight(), getWidth(), getHeight(), 90, Camera.CameraInfo.CAMERA_FACING_BACK, false, false, false);
-            }
-            Rect newRectF = drawHelper.adjustRect(rect);
-            this.rectF = new RectF(newRectF.left, newRectF.top, newRectF.right, newRectF.bottom);
+            // 坐标轴顺时针旋转90度
+            int height = getWidth();
+            int newLeft = height - rect.bottom;
+            int newRight = height - rect.top;
+            int newTop = rect.left;
+            int newBottom = rect.right;
+            this.rectF = new RectF(newLeft, newTop, newRight, newBottom);
         }
     }
 
