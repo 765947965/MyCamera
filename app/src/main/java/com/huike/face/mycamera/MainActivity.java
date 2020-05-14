@@ -109,7 +109,7 @@ public class MainActivity extends AppCompatActivity {
                     CameraPreviewData irData = pair.second;
                     List<FaceInfo> faceInfoList = new ArrayList<>();
                     // 人脸框
-                    int code = ftEngine.detectFaces(rgbData.nv21Data, rgbData.width, rgbData.height, FaceEngine.CP_PAF_NV21, faceInfoList);
+                    int code = ftEngine.detectFaces(irData.nv21Data, irData.width, irData.height, FaceEngine.CP_PAF_NV21, faceInfoList);
                     if (code != ErrorInfo.MOK || faceInfoList.size() == 0) {
                         //Log.i("ccccccccccc", "无人脸");
                         continue;
